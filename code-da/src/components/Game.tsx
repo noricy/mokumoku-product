@@ -13,11 +13,12 @@ export function Game({ course, onFinish, onAbort }: Props) {
   const {
     state,
     candidates,
+    isPreview,
     typeChar,
     backspace,
     moveSelection,
     accept,
-    skip,
+    refresh,
     config,
   } = useTypingGame(course);
 
@@ -30,7 +31,7 @@ export function Game({ course, onFinish, onAbort }: Props) {
       }
       if (e.key === "Tab" && e.shiftKey) {
         e.preventDefault();
-        skip();
+        refresh();
         return;
       }
       if (e.key === "Tab" || e.key === "Enter") {
@@ -59,18 +60,20 @@ export function Game({ course, onFinish, onAbort }: Props) {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [typeChar, backspace, moveSelection, accept, skip, onAbort]);
+  }, [typeChar, backspace, moveSelection, accept, refresh, onAbort]);
 
   useEffect(() => {
-    if (state.status === "finished") {
-      onFinish(state.stats);
-    }
+    if (state.status === "finished") onFinish(state.stats);
   }, [state.status, state.stats, onFinish]);
 
   const remainingSec = Math.ceil(state.remainingMs / 1000);
   const progressPct =
     100 - (state.remainingMs / (config.durationSec * 1000)) * 100;
-  const noMatch = state.buffer.length > 0 && candidates.length === 0;
+
+  // Target word display: split by buffer progress
+  const tTyped = state.target.slice(0, state.buffer.length);
+  const tCursor = state.target[state.buffer.length] ?? "";
+  const tRest = state.target.slice(state.buffer.length + 1);
 
   return (
     <div className="screen game">
@@ -91,43 +94,56 @@ export function Game({ course, onFinish, onAbort }: Props) {
       <div className="progress">
         <div className="progress-bar" style={{ width: `${progressPct}%` }} />
       </div>
-      <div className={`terminal ${state.hasError ? "shake" : ""}`}>
-        <div className="prompt-row">
-          <span className="prompt-sigil">$</span>
-          <span className="typed">{state.buffer}</span>
-          <span className="cursor">_</span>
-        </div>
-        <ul className={`candidates ${noMatch ? "empty" : ""}`}>
-          {candidates.length === 0 ? (
-            <li className="no-match">
-              {state.buffer.length === 0
-                ? "(タイプしてコマンドを選ぼう)"
-                : "no matches — Backspace で戻る"}
-            </li>
-          ) : (
-            candidates.map((word, i) => {
-              const prefixLen = state.buffer.length;
-              return (
-                <li
-                  key={word}
-                  className={i === state.selectedIdx ? "selected" : ""}
-                >
-                  <span className="cand-arrow">
-                    {i === state.selectedIdx ? "▸" : " "}
-                  </span>
-                  <span className="cand-prefix">
-                    {word.slice(0, prefixLen)}
-                  </span>
-                  <span className="cand-suffix">{word.slice(prefixLen)}</span>
-                </li>
-              );
-            })
-          )}
-        </ul>
+
+      <div className={`target-box ${state.hasError ? "shake" : ""}`}>
+        <div className="target-label">お題</div>
+        <pre className="target-word">
+          <span className="t-typed">{tTyped}</span>
+          <span className="t-cursor">{tCursor || " "}</span>
+          <span className="t-rest">{tRest}</span>
+        </pre>
       </div>
+
+      <div className="input-row">
+        <span className="prompt-sigil">$</span>
+        <span className="typed-buf">{state.buffer}</span>
+        <span className="caret">_</span>
+      </div>
+
+      <ul className={`candidates ${isPreview ? "preview" : ""}`}>
+        {candidates.length === 0 && !isPreview ? (
+          <li className="no-match">no matches — Backspace で戻る</li>
+        ) : (
+          candidates.map((word, i) => {
+            const isTarget = !isPreview && word === state.target;
+            const isSelected = !isPreview && i === state.selectedIdx;
+            const prefixLen = isPreview ? 0 : state.buffer.length;
+            return (
+              <li
+                key={word + "-" + i}
+                className={[
+                  isSelected ? "selected" : "",
+                  isTarget ? "is-target" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                <span className="cand-cursor">{isSelected ? "▸" : " "}</span>
+                <span className="cand-prefix">{word.slice(0, prefixLen)}</span>
+                <span className="cand-suffix">{word.slice(prefixLen)}</span>
+                {isTarget && <span className="target-tag">target</span>}
+              </li>
+            );
+          })
+        )}
+      </ul>
+
       <div className="hint">
-        <kbd>↑↓</kbd> 選択 &nbsp; <kbd>↹ Tab</kbd>/<kbd>Enter</kbd> 実行 &nbsp;
-        <kbd>⇧↹</kbd> リフレッシュ &nbsp; <kbd>Esc</kbd> 中断
+        <kbd>↑↓</kbd> 選択 &nbsp;
+        <kbd>↹ Tab</kbd> / <kbd>Enter</kbd> target に合えば実行 &nbsp;
+        <kbd>⇧↹</kbd> リフレッシュ &nbsp;
+        <kbd>Backspace</kbd> 1文字戻る &nbsp;
+        <kbd>Esc</kbd> 中断
       </div>
     </div>
   );

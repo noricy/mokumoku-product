@@ -137,17 +137,17 @@
   background: linear-gradient(90deg, var(--green-dim), var(--green));
   transition: width 120ms linear;
 }
-.terminal {
+/* --- target box (the お題) --- */
+.target-box {
   background: var(--bg-elev);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 20px 24px;
-  min-height: 280px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
-.terminal.shake {
+.target-box.shake {
   animation: shake 160ms ease;
   border-color: var(--red);
 }
@@ -163,39 +163,80 @@
     transform: translateX(4px);
   }
 }
-.prompt-row {
+.target-label {
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.target-word {
   font-family: var(--mono);
-  font-size: 24px;
+  font-size: 30px;
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.4;
+}
+.t-typed {
+  color: var(--text-dim);
+  text-decoration: line-through;
+  text-decoration-color: var(--green-dim);
+}
+.t-cursor {
+  color: var(--bg);
+  background: var(--green);
+  padding: 0 2px;
+  border-radius: 2px;
+  animation: blink 1s steps(2, start) infinite;
+}
+.t-rest {
+  color: var(--text);
+}
+@keyframes blink {
+  to {
+    opacity: 0.3;
+  }
+}
+
+/* --- input row (the buffer being typed) --- */
+.input-row {
+  font-family: var(--mono);
+  font-size: 22px;
   display: flex;
   align-items: baseline;
   gap: 8px;
-  padding-bottom: 10px;
-  border-bottom: 1px dashed var(--border);
+  padding: 8px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
 }
 .prompt-sigil {
   color: var(--green-dim);
 }
-.typed {
+.typed-buf {
   color: var(--green);
 }
-.cursor {
+.caret {
   color: var(--green);
   animation: blink 1s steps(2, start) infinite;
 }
-@keyframes blink {
-  to {
-    opacity: 0;
-  }
-}
+
+/* --- candidate dropdown --- */
 .candidates {
   list-style: none;
-  padding: 0;
+  padding: 6px;
   margin: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
   font-family: var(--mono);
-  font-size: 18px;
+  font-size: 17px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  min-height: 50px;
+}
+.candidates.preview {
+  opacity: 0.55;
 }
 .candidates li {
   display: flex;
@@ -204,12 +245,19 @@
   padding: 6px 10px;
   border-radius: 4px;
   white-space: pre;
+  position: relative;
 }
 .candidates li.selected {
   background: rgba(95, 255, 135, 0.12);
-  outline: 1px solid var(--green-dim);
 }
-.cand-arrow {
+.candidates li.is-target {
+  outline: 1px dashed var(--amber);
+}
+.candidates li.is-target.selected {
+  outline: 1px solid var(--amber);
+  background: rgba(255, 204, 102, 0.1);
+}
+.cand-cursor {
   color: var(--green);
   width: 14px;
   display: inline-block;
@@ -224,14 +272,17 @@
 .candidates li.selected .cand-suffix {
   color: var(--text);
 }
+.target-tag {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--amber);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 .no-match {
   color: var(--red);
   font-style: italic;
   padding: 6px 10px;
-}
-.candidates.empty .no-match {
-  color: var(--text-dim);
-  font-style: normal;
 }
 .hint {
   text-align: center;

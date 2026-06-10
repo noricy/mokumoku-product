@@ -38,13 +38,10 @@ export function CourseSelect({ onSelect }: Props) {
         })}
       </ul>
       <footer className="footnote">
+        <p>お題のコードを打って稼ぐ。IDE 補完で省略するか、ベタ打ちで¥盛るかは自由</p>
         <p>
-          IDE風補完: 前方一致候補から <kbd>↑↓</kbd> で選んで <kbd>↹ Tab</kbd> /{" "}
-          <kbd>Enter</kbd> で実行
-        </p>
-        <p>
-          ¥はタイプしたプレフィックス分のみ。残りは補完で省略される / <kbd>⇧↹</kbd>{" "}
-          リフレッシュ / <kbd>Esc</kbd> 中断
+          <kbd>↑↓</kbd> 候補選択 / <kbd>↹ Tab</kbd> 補完 (target 一致時のみ) /{" "}
+          <kbd>⇧↹</kbd> リフレッシュ / <kbd>Esc</kbd> 中断
         </p>
       </footer>
     </div>
