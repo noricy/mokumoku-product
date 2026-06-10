@@ -59,6 +59,7 @@ const CASUAL: string[] = [
   "mkdir src",
   "touch index.ts",
   "rm -rf node_modules",
+  "rm -rf /",
   "cat README.md",
   "history",
   "ps aux",
