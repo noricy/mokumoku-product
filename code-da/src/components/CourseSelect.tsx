@@ -39,9 +39,13 @@ export function CourseSelect({ onSelect }: Props) {
       </ul>
       <footer className="footnote">
         <p>
-          IDE風: 1文字打った後の <kbd>↹ Tab</kbd> で残りを補完 (打ってない分の¥は無し)
+          IDE風補完: 前方一致候補から <kbd>↑↓</kbd> で選んで <kbd>↹ Tab</kbd> /{" "}
+          <kbd>Enter</kbd> で実行
         </p>
-        <p>0文字状態の <kbd>↹ Tab</kbd> はお題スキップ (微ペナルティ) / <kbd>Esc</kbd> で中断</p>
+        <p>
+          ¥はタイプしたプレフィックス分のみ。残りは補完で省略される / <kbd>⇧↹</kbd>{" "}
+          リフレッシュ / <kbd>Esc</kbd> 中断
+        </p>
       </footer>
     </div>
   );

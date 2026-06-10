@@ -10,7 +10,16 @@ type Props = {
 };
 
 export function Game({ course, onFinish, onAbort }: Props) {
-  const { state, handleKey, tabComplete, config } = useTypingGame(course);
+  const {
+    state,
+    candidates,
+    typeChar,
+    backspace,
+    moveSelection,
+    accept,
+    skip,
+    config,
+  } = useTypingGame(course);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -19,18 +28,38 @@ export function Game({ course, onFinish, onAbort }: Props) {
         onAbort();
         return;
       }
-      if (e.key === "Tab") {
+      if (e.key === "Tab" && e.shiftKey) {
         e.preventDefault();
-        tabComplete();
+        skip();
         return;
       }
-      if (e.key.length === 1) {
-        handleKey(e.key);
+      if (e.key === "Tab" || e.key === "Enter") {
+        e.preventDefault();
+        accept();
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        moveSelection(-1);
+        return;
+      }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        moveSelection(1);
+        return;
+      }
+      if (e.key === "Backspace") {
+        e.preventDefault();
+        backspace();
+        return;
+      }
+      if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        typeChar(e.key);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleKey, tabComplete, onAbort]);
+  }, [typeChar, backspace, moveSelection, accept, skip, onAbort]);
 
   useEffect(() => {
     if (state.status === "finished") {
@@ -38,13 +67,10 @@ export function Game({ course, onFinish, onAbort }: Props) {
     }
   }, [state.status, state.stats, onFinish]);
 
-  const typed = state.currentWord.slice(0, state.typedIndex);
-  const cursor = state.currentWord[state.typedIndex] ?? "";
-  const rest = state.currentWord.slice(state.typedIndex + 1);
   const remainingSec = Math.ceil(state.remainingMs / 1000);
   const progressPct =
     100 - (state.remainingMs / (config.durationSec * 1000)) * 100;
-  const canComplete = state.typedIndex > 0;
+  const noMatch = state.buffer.length > 0 && candidates.length === 0;
 
   return (
     <div className="screen game">
@@ -65,22 +91,43 @@ export function Game({ course, onFinish, onAbort }: Props) {
       <div className="progress">
         <div className="progress-bar" style={{ width: `${progressPct}%` }} />
       </div>
-      <div className={`word-box ${state.hasError ? "shake" : ""}`}>
-        <pre className="word">
-          <span className="typed">{typed}</span>
-          <span className="cursor">{cursor || " "}</span>
-          <span className={`rest ${canComplete ? "ghost" : ""}`}>{rest}</span>
-        </pre>
-        {canComplete && (
-          <div className="complete-badge">
-            <kbd>↹ Tab</kbd> で補完
-          </div>
-        )}
+      <div className={`terminal ${state.hasError ? "shake" : ""}`}>
+        <div className="prompt-row">
+          <span className="prompt-sigil">$</span>
+          <span className="typed">{state.buffer}</span>
+          <span className="cursor">_</span>
+        </div>
+        <ul className={`candidates ${noMatch ? "empty" : ""}`}>
+          {candidates.length === 0 ? (
+            <li className="no-match">
+              {state.buffer.length === 0
+                ? "(タイプしてコマンドを選ぼう)"
+                : "no matches — Backspace で戻る"}
+            </li>
+          ) : (
+            candidates.map((word, i) => {
+              const prefixLen = state.buffer.length;
+              return (
+                <li
+                  key={word}
+                  className={i === state.selectedIdx ? "selected" : ""}
+                >
+                  <span className="cand-arrow">
+                    {i === state.selectedIdx ? "▸" : " "}
+                  </span>
+                  <span className="cand-prefix">
+                    {word.slice(0, prefixLen)}
+                  </span>
+                  <span className="cand-suffix">{word.slice(prefixLen)}</span>
+                </li>
+              );
+            })
+          )}
+        </ul>
       </div>
       <div className="hint">
-        <kbd>↹ Tab</kbd>{" "}
-        {canComplete ? "残りを補完(残文字は¥なし)" : "お題スキップ"} &nbsp;
-        <kbd>Esc</kbd> 中断
+        <kbd>↑↓</kbd> 選択 &nbsp; <kbd>↹ Tab</kbd>/<kbd>Enter</kbd> 実行 &nbsp;
+        <kbd>⇧↹</kbd> リフレッシュ &nbsp; <kbd>Esc</kbd> 中断
       </div>
     </div>
   );
