@@ -15,7 +15,7 @@ export const COURSES: Record<Course, CourseConfig> = {
     label: "お手軽コース",
     emoji: "☕",
     price: 300,
-    durationSec: 30,
+    durationSec: 45,
     description: "短いコマンドで腕慣らし",
   },
   recommended: {

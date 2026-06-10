@@ -30,14 +30,13 @@ const pickWord = (course: Course, prev?: string): string => {
 };
 
 const yenPerChar = (course: Course): number => {
-  // tuned so that a fluent typist can break even on each course
   switch (course) {
     case "casual":
-      return 3;
-    case "recommended":
       return 4;
-    case "premium":
+    case "recommended":
       return 5;
+    case "premium":
+      return 6;
   }
 };
 
@@ -102,8 +101,8 @@ export function useTypingGame(course: Course) {
         const expected = s.currentWord[s.typedIndex];
         if (key === expected) {
           const nextIndex = s.typedIndex + 1;
+          const earnedThisChar = yenPerChar(s.course);
           if (nextIndex >= s.currentWord.length) {
-            const earned = s.currentWord.length * yenPerChar(s.course);
             return {
               ...s,
               currentWord: pickWord(s.course, s.currentWord),
@@ -113,7 +112,7 @@ export function useTypingGame(course: Course) {
                 ...s.stats,
                 correctChars: s.stats.correctChars + 1,
                 completedWords: s.stats.completedWords + 1,
-                earnedYen: s.stats.earnedYen + earned,
+                earnedYen: s.stats.earnedYen + earnedThisChar,
               },
             };
           }
@@ -121,7 +120,11 @@ export function useTypingGame(course: Course) {
             ...s,
             typedIndex: nextIndex,
             hasError: false,
-            stats: { ...s.stats, correctChars: s.stats.correctChars + 1 },
+            stats: {
+              ...s.stats,
+              correctChars: s.stats.correctChars + 1,
+              earnedYen: s.stats.earnedYen + earnedThisChar,
+            },
           };
         }
         return {
