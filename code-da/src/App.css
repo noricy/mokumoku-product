@@ -219,6 +219,13 @@
   color: var(--green);
   animation: blink 1s steps(2, start) infinite;
 }
+.literal-tag {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--red);
+  letter-spacing: 0.05em;
+  opacity: 0.85;
+}
 
 /* --- candidate dropdown --- */
 .candidates {

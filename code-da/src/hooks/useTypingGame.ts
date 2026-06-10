@@ -54,6 +54,40 @@ const pickTarget = (course: Course, prev?: string): string => {
 const candidatesOf = (course: Course, buffer: string): string[] =>
   WORDS[course].filter((w) => w.startsWith(buffer)).slice(0, MAX_CANDIDATES);
 
+const QUOTE_CHARS = ['"', "'", "`"];
+// Tokens containing any of these are treated as literals (not completable).
+// See SPEC.md §3.5.2.
+const LITERAL_CHARS = /[{}()<>[\]|&;]/;
+
+// Determine the next-token completion target for the given buffer length.
+// Returns { newLen, ok } where ok=false means the current/next token is a
+// literal (or otherwise non-completable) and Tab should be a no-op.
+const completionFor = (
+  target: string,
+  bufferLen: number
+): { newLen: number; ok: boolean } => {
+  let i = bufferLen;
+  // Skip any whitespace separating us from the next token
+  while (i < target.length && target[i] === " ") i++;
+  if (i >= target.length) {
+    // Nothing left — buffer already at end of target; treat as full complete.
+    return { newLen: target.length, ok: true };
+  }
+  // Quoted-string token → literal
+  if (QUOTE_CHARS.includes(target[i])) {
+    return { newLen: bufferLen, ok: false };
+  }
+  const start = i;
+  while (i < target.length && target[i] !== " ") i++;
+  const text = target.slice(start, i);
+  if (text.length < 2 || LITERAL_CHARS.test(text)) {
+    return { newLen: bufferLen, ok: false };
+  }
+  let newLen = i;
+  if (newLen < target.length && target[newLen] === " ") newLen++;
+  return { newLen, ok: true };
+};
+
 // When buffer changes, default the selection back to the row that contains
 // the current target (so the player can press Tab immediately once the
 // target is uniquely identifiable). Falls back to 0 if target dropped out.
@@ -133,6 +167,14 @@ export function useTypingGame(course: Course) {
     if (isPreview) return emptyPreview;
     return candidatesOf(state.course, state.buffer);
   }, [isPreview, state.course, state.buffer, emptyPreview]);
+
+  // True when the next token (the one Tab would complete) is a literal.
+  // Used by the UI to dim the Tab hint and show "no completion here".
+  const currentTokenIsLiteral = useMemo(() => {
+    if (isPreview) return false;
+    if (state.buffer.length >= state.target.length) return false;
+    return !completionFor(state.target, state.buffer.length).ok;
+  }, [isPreview, state.buffer.length, state.target]);
 
   const typeChar = useCallback((ch: string) => {
     setState((s) => {
@@ -215,22 +257,38 @@ export function useTypingGame(course: Course) {
       const cands = candidatesOf(s.course, s.buffer);
       const selected = cands[s.selectedIdx];
       if (selected !== s.target) {
-        // hint only — no penalty, no state change beyond shake feedback
+        // selected is not target — Tab is a no-op hint (no penalty)
         return { ...s, hasError: true };
       }
-      const newTarget = pickTarget(s.course, s.target);
-      setEmptyPreview(sample(WORDS[s.course], MAX_CANDIDATES));
+      const { newLen, ok } = completionFor(s.target, s.buffer.length);
+      if (!ok) {
+        // current/next token is a literal — Tab is a no-op hint (no penalty)
+        return { ...s, hasError: true };
+      }
+      const newBuffer = s.target.slice(0, newLen);
+      // Full target completed via Tab (rare: only when only one token remained
+      // and it had no trailing space)
+      if (newBuffer === s.target) {
+        const newTarget = pickTarget(s.course, s.target);
+        setEmptyPreview(sample(WORDS[s.course], MAX_CANDIDATES));
+        return {
+          ...s,
+          target: newTarget,
+          buffer: "",
+          selectedIdx: 0,
+          hasError: false,
+          stats: {
+            ...s.stats,
+            completedWords: s.stats.completedWords + 1,
+            // Tab-completed chars yield no yen; only typed chars do.
+          },
+        };
+      }
       return {
         ...s,
-        target: newTarget,
-        buffer: "",
-        selectedIdx: 0,
+        buffer: newBuffer,
+        selectedIdx: selectionForTarget(s.course, newBuffer, s.target),
         hasError: false,
-        stats: {
-          ...s.stats,
-          completedWords: s.stats.completedWords + 1,
-          // Tab-completed chars yield no yen; only typed chars do.
-        },
       };
     });
   }, []);
@@ -260,6 +318,7 @@ export function useTypingGame(course: Course) {
     state,
     candidates,
     isPreview,
+    currentTokenIsLiteral,
     typeChar,
     backspace,
     moveSelection,

@@ -14,6 +14,7 @@ export function Game({ course, onFinish, onAbort }: Props) {
     state,
     candidates,
     isPreview,
+    currentTokenIsLiteral,
     typeChar,
     backspace,
     moveSelection,
@@ -108,6 +109,9 @@ export function Game({ course, onFinish, onAbort }: Props) {
         <span className="prompt-sigil">$</span>
         <span className="typed-buf">{state.buffer}</span>
         <span className="caret">_</span>
+        {currentTokenIsLiteral && (
+          <span className="literal-tag">literal — Tab 不可</span>
+        )}
       </div>
 
       <ul className={`candidates ${isPreview ? "preview" : ""}`}>
