@@ -227,6 +227,87 @@
   opacity: 0.85;
 }
 
+/* --- hidden input (drives soft keyboard on mobile) --- */
+.hidden-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  border: none;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  /* must remain in layout to receive focus */
+}
+
+/* --- on-screen action buttons --- */
+.actions {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.act {
+  flex: 0 0 auto;
+  min-width: 56px;
+  min-height: 44px;
+  padding: 8px 14px;
+  background: var(--bg-elev);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 16px;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.act:hover {
+  border-color: var(--green-dim);
+}
+.act:active {
+  background: rgba(95, 255, 135, 0.1);
+}
+.act.primary {
+  border-color: var(--green-dim);
+  color: var(--green);
+}
+.act.danger {
+  border-color: rgba(255, 90, 115, 0.4);
+  color: var(--red);
+}
+@media (max-width: 600px) {
+  .screen {
+    gap: 16px;
+  }
+  .hud-value {
+    font-size: 22px;
+  }
+  .target-word {
+    font-size: 22px;
+  }
+  .input-row {
+    font-size: 18px;
+  }
+  .candidates {
+    font-size: 15px;
+  }
+  .act {
+    flex: 1 1 calc(33% - 6px);
+    min-width: 0;
+    padding: 10px 8px;
+    font-size: 15px;
+  }
+  .hint {
+    display: none; /* on-screen buttons replace it on mobile */
+  }
+}
+
 /* --- candidate dropdown --- */
 .candidates {
   list-style: none;

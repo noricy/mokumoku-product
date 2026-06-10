@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useTypingGame } from "../hooks/useTypingGame";
 import type { Course } from "../data/words";
 import type { GameStats } from "../hooks/useTypingGame";
@@ -23,6 +23,18 @@ export function Game({ course, onFinish, onAbort }: Props) {
     config,
   } = useTypingGame(course);
 
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus the hidden input on mount. On iOS Safari this won't open the
+  // soft keyboard without a user gesture — the user must tap the game area
+  // first; see the onClick handler on the root element.
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  // Special keys (desktop physical keyboard). Printable chars and Backspace
+  // come through onBeforeInput on the hidden input instead, so they aren't
+  // handled here (would double-fire).
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -50,34 +62,60 @@ export function Game({ course, onFinish, onAbort }: Props) {
         moveSelection(1);
         return;
       }
-      if (e.key === "Backspace") {
-        e.preventDefault();
-        backspace();
-        return;
-      }
-      if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        typeChar(e.key);
-      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [typeChar, backspace, moveSelection, accept, refresh, onAbort]);
+  }, [moveSelection, accept, refresh, onAbort]);
 
   useEffect(() => {
     if (state.status === "finished") onFinish(state.stats);
   }, [state.status, state.stats, onFinish]);
 
+  const focusInput = () => inputRef.current?.focus();
+
+  // beforeinput is the cross-platform-reliable way to capture text input,
+  // including from Android/iOS soft keyboards which often don't fire keydown
+  // for character keys.
+  const handleBeforeInput = (e: React.FormEvent<HTMLInputElement>) => {
+    const ev = e.nativeEvent as InputEvent;
+    e.preventDefault();
+    if (ev.inputType === "insertText" && ev.data) {
+      for (const ch of ev.data) {
+        // Skip non-printable control chars (tab, newline) — those are special keys
+        if (ch.charCodeAt(0) >= 32 && ch.charCodeAt(0) !== 127) {
+          typeChar(ch);
+        }
+      }
+    } else if (ev.inputType?.startsWith("deleteContent")) {
+      backspace();
+    }
+  };
+
   const remainingSec = Math.ceil(state.remainingMs / 1000);
   const progressPct =
     100 - (state.remainingMs / (config.durationSec * 1000)) * 100;
 
-  // Target word display: split by buffer progress
   const tTyped = state.target.slice(0, state.buffer.length);
   const tCursor = state.target[state.buffer.length] ?? "";
   const tRest = state.target.slice(state.buffer.length + 1);
 
   return (
-    <div className="screen game">
+    <div className="screen game" onClick={focusInput}>
+      {/* Hidden input drives the soft keyboard and captures chars via
+          beforeinput. Kept off-screen visually but in the DOM and focusable. */}
+      <input
+        ref={inputRef}
+        className="hidden-input"
+        type="text"
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        inputMode="text"
+        onBeforeInput={handleBeforeInput}
+        aria-label="code-da input"
+      />
+
       <div className="hud">
         <div className="hud-cell">
           <span className="hud-label">残り</span>
@@ -142,11 +180,65 @@ export function Game({ course, onFinish, onAbort }: Props) {
         )}
       </ul>
 
+      <div className="actions">
+        <button
+          type="button"
+          className="act"
+          aria-label="up"
+          onClick={() => moveSelection(-1)}
+        >
+          ↑
+        </button>
+        <button
+          type="button"
+          className="act"
+          aria-label="down"
+          onClick={() => moveSelection(1)}
+        >
+          ↓
+        </button>
+        <button
+          type="button"
+          className="act primary"
+          aria-label="accept"
+          onClick={() => accept()}
+        >
+          ↹ Tab
+        </button>
+        <button
+          type="button"
+          className="act"
+          aria-label="refresh"
+          onClick={() => refresh()}
+        >
+          ⇧↹
+        </button>
+        <button
+          type="button"
+          className="act"
+          aria-label="backspace"
+          onClick={() => backspace()}
+        >
+          ⌫
+        </button>
+        <button
+          type="button"
+          className="act danger"
+          aria-label="abort"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAbort();
+          }}
+        >
+          Esc
+        </button>
+      </div>
+
       <div className="hint">
         <kbd>↑↓</kbd> 選択 &nbsp;
-        <kbd>↹ Tab</kbd> / <kbd>Enter</kbd> target に合えば実行 &nbsp;
+        <kbd>↹ Tab</kbd> / <kbd>Enter</kbd> 実行 &nbsp;
         <kbd>⇧↹</kbd> リフレッシュ &nbsp;
-        <kbd>Backspace</kbd> 1文字戻る &nbsp;
+        <kbd>⌫</kbd> 1文字戻る &nbsp;
         <kbd>Esc</kbd> 中断
       </div>
     </div>

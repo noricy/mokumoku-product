@@ -221,8 +221,12 @@ target = `git commit -m "fix"` (長さ 19) の場合:
 
 - スタック: Vite + React + TypeScript
 - ビルド: `npm run build` → `dist/` を GitHub Pages に Actions 経由でデプロイ
-- レスポンシブ: PC 優先。スマホ閲覧可だがキー入力前提のため最適化対象外
-- ブラウザ: モダンブラウザ最新版 (Chrome / Edge / Firefox / Safari)
+- 入力対応:
+  - **デスクトップ**: 物理キーボード (window keydown で特殊キー、隠し input の beforeinput で文字)
+  - **モバイル**: ソフトキーボードからの文字入力 (隠し input の beforeinput) + 画面上アクションボタン (Tab / ↑↓ / Shift+Tab / Esc / Backspace)
+  - ゲーム領域タップで input に focus → ソフトキーボード起動
+- レスポンシブ: モバイル幅でもアクションボタンが画面下部に並び、片手操作可能
+- ブラウザ: モダンブラウザ最新版 (Chrome / Edge / Firefox / Safari, iOS Safari 含む)
 
 ## 11. 対象外 (out of scope)
 
