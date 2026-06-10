@@ -73,23 +73,59 @@ export function Game({ course, onFinish, onAbort }: Props) {
 
   const focusInput = () => inputRef.current?.focus();
 
-  // beforeinput is the cross-platform-reliable way to capture text input,
-  // including from Android/iOS soft keyboards which often don't fire keydown
-  // for character keys.
-  const handleBeforeInput = (e: React.FormEvent<HTMLInputElement>) => {
-    const ev = e.nativeEvent as InputEvent;
-    e.preventDefault();
-    if (ev.inputType === "insertText" && ev.data) {
-      for (const ch of ev.data) {
-        // Skip non-printable control chars (tab, newline) — those are special keys
-        if (ch.charCodeAt(0) >= 32 && ch.charCodeAt(0) !== 127) {
-          typeChar(ch);
+  // Native beforeinput / input listeners. React's synthetic onBeforeInput
+  // does not reliably surface InputEvent properties (inputType, data) across
+  // browsers — especially iOS Safari — so we attach the real listeners and
+  // bypass the synthetic system entirely.
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    let handledByBeforeInput = false;
+
+    const onBefore = (e: Event) => {
+      const ev = e as InputEvent;
+      if (ev.inputType === "insertText" && ev.data) {
+        ev.preventDefault();
+        handledByBeforeInput = true;
+        for (const ch of ev.data) {
+          if (ch.charCodeAt(0) >= 32 && ch.charCodeAt(0) !== 127) {
+            typeChar(ch);
+          }
         }
+      } else if (ev.inputType?.startsWith("deleteContent")) {
+        ev.preventDefault();
+        handledByBeforeInput = true;
+        backspace();
       }
-    } else if (ev.inputType?.startsWith("deleteContent")) {
-      backspace();
-    }
-  };
+    };
+
+    const onInput = (e: Event) => {
+      const t = e.target as HTMLInputElement;
+      if (handledByBeforeInput) {
+        handledByBeforeInput = false;
+        // Belt-and-suspenders: make sure the field stays empty even if
+        // preventDefault was ineffective for some reason.
+        t.value = "";
+        return;
+      }
+      // Fallback path for keyboards (some Android IMEs) that bypass beforeinput.
+      if (t.value) {
+        for (const ch of t.value) {
+          if (ch.charCodeAt(0) >= 32 && ch.charCodeAt(0) !== 127) {
+            typeChar(ch);
+          }
+        }
+        t.value = "";
+      }
+    };
+
+    input.addEventListener("beforeinput", onBefore);
+    input.addEventListener("input", onInput);
+    return () => {
+      input.removeEventListener("beforeinput", onBefore);
+      input.removeEventListener("input", onInput);
+    };
+  }, [typeChar, backspace]);
 
   // Wrap each action button so it triggers its action AND refocuses the
   // hidden input, keeping the soft keyboard open on mobile.
@@ -145,9 +181,6 @@ export function Game({ course, onFinish, onAbort }: Props) {
           ref={inputRef}
           className="real-input"
           type="text"
-          value=""
-          onChange={() => {}}
-          onBeforeInput={handleBeforeInput}
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"
@@ -158,6 +191,9 @@ export function Game({ course, onFinish, onAbort }: Props) {
         <span className="prompt-sigil">$</span>
         <span className="typed-buf">{state.buffer}</span>
         <span className="caret">_</span>
+        {state.buffer.length === 0 && (
+          <span className="tap-hint">タップして入力</span>
+        )}
         {currentTokenIsLiteral && (
           <span className="literal-tag">literal — Tab 不可</span>
         )}

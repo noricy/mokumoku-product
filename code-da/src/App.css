@@ -211,14 +211,28 @@
   border-radius: 6px;
   min-height: 44px;
   cursor: text;
+  transition: border-color 120ms ease;
+}
+.input-row:focus-within {
+  border-color: var(--green);
 }
 .input-row > .prompt-sigil,
 .input-row > .typed-buf,
 .input-row > .caret,
-.input-row > .literal-tag {
+.input-row > .literal-tag,
+.input-row > .tap-hint {
   position: relative;
   z-index: 1;
   pointer-events: none;
+}
+.tap-hint {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--text-dim);
+  font-style: italic;
+}
+.input-row:focus-within > .tap-hint {
+  display: none;
 }
 /* Real input overlaid on the row — invisible content, fully tappable.
    Tapping the row directly focuses this input and opens the soft keyboard
