@@ -38,7 +38,10 @@ export function CourseSelect({ onSelect }: Props) {
         })}
       </ul>
       <footer className="footnote">
-        <p>Esc でいつでも中断 / Tab でお題スキップ(ペナルティあり)</p>
+        <p>
+          IDE風: 1文字打った後の <kbd>↹ Tab</kbd> で残りを補完 (打ってない分の¥は無し)
+        </p>
+        <p>0文字状態の <kbd>↹ Tab</kbd> はお題スキップ (微ペナルティ) / <kbd>Esc</kbd> で中断</p>
       </footer>
     </div>
   );

@@ -10,7 +10,7 @@ type Props = {
 };
 
 export function Game({ course, onFinish, onAbort }: Props) {
-  const { state, handleKey, skip, config } = useTypingGame(course);
+  const { state, handleKey, tabComplete, config } = useTypingGame(course);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -21,7 +21,7 @@ export function Game({ course, onFinish, onAbort }: Props) {
       }
       if (e.key === "Tab") {
         e.preventDefault();
-        skip();
+        tabComplete();
         return;
       }
       if (e.key.length === 1) {
@@ -30,7 +30,7 @@ export function Game({ course, onFinish, onAbort }: Props) {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleKey, skip, onAbort]);
+  }, [handleKey, tabComplete, onAbort]);
 
   useEffect(() => {
     if (state.status === "finished") {
@@ -44,6 +44,7 @@ export function Game({ course, onFinish, onAbort }: Props) {
   const remainingSec = Math.ceil(state.remainingMs / 1000);
   const progressPct =
     100 - (state.remainingMs / (config.durationSec * 1000)) * 100;
+  const canComplete = state.typedIndex > 0;
 
   return (
     <div className="screen game">
@@ -68,11 +69,18 @@ export function Game({ course, onFinish, onAbort }: Props) {
         <pre className="word">
           <span className="typed">{typed}</span>
           <span className="cursor">{cursor || " "}</span>
-          <span className="rest">{rest}</span>
+          <span className={`rest ${canComplete ? "ghost" : ""}`}>{rest}</span>
         </pre>
+        {canComplete && (
+          <div className="complete-badge">
+            <kbd>↹ Tab</kbd> で補完
+          </div>
+        )}
       </div>
       <div className="hint">
-        <kbd>Tab</kbd> スキップ &nbsp; <kbd>Esc</kbd> 中断
+        <kbd>↹ Tab</kbd>{" "}
+        {canComplete ? "残りを補完(残文字は¥なし)" : "お題スキップ"} &nbsp;
+        <kbd>Esc</kbd> 中断
       </div>
     </div>
   );
