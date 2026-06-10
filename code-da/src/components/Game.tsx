@@ -91,6 +91,13 @@ export function Game({ course, onFinish, onAbort }: Props) {
     }
   };
 
+  // Wrap each action button so it triggers its action AND refocuses the
+  // hidden input, keeping the soft keyboard open on mobile.
+  const withRefocus = (action: () => void) => () => {
+    action();
+    focusInput();
+  };
+
   const remainingSec = Math.ceil(state.remainingMs / 1000);
   const progressPct =
     100 - (state.remainingMs / (config.durationSec * 1000)) * 100;
@@ -100,22 +107,7 @@ export function Game({ course, onFinish, onAbort }: Props) {
   const tRest = state.target.slice(state.buffer.length + 1);
 
   return (
-    <div className="screen game" onClick={focusInput}>
-      {/* Hidden input drives the soft keyboard and captures chars via
-          beforeinput. Kept off-screen visually but in the DOM and focusable. */}
-      <input
-        ref={inputRef}
-        className="hidden-input"
-        type="text"
-        autoComplete="off"
-        autoCorrect="off"
-        autoCapitalize="off"
-        spellCheck={false}
-        inputMode="text"
-        onBeforeInput={handleBeforeInput}
-        aria-label="code-da input"
-      />
-
+    <div className="screen game">
       <div className="hud">
         <div className="hud-cell">
           <span className="hud-label">残り</span>
@@ -144,6 +136,25 @@ export function Game({ course, onFinish, onAbort }: Props) {
       </div>
 
       <div className="input-row">
+        {/* Real input overlaid transparently on the row. User taps anywhere
+            on the prompt → keyboard opens (iOS-friendly: no programmatic
+            focus required for the initial tap). Stays value="" because we
+            preventDefault every beforeinput; the visible buffer below is
+            the display of state.buffer. */}
+        <input
+          ref={inputRef}
+          className="real-input"
+          type="text"
+          value=""
+          onChange={() => {}}
+          onBeforeInput={handleBeforeInput}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          inputMode="text"
+          aria-label="code-da input"
+        />
         <span className="prompt-sigil">$</span>
         <span className="typed-buf">{state.buffer}</span>
         <span className="caret">_</span>
@@ -185,7 +196,7 @@ export function Game({ course, onFinish, onAbort }: Props) {
           type="button"
           className="act"
           aria-label="up"
-          onClick={() => moveSelection(-1)}
+          onClick={withRefocus(() => moveSelection(-1))}
         >
           ↑
         </button>
@@ -193,7 +204,7 @@ export function Game({ course, onFinish, onAbort }: Props) {
           type="button"
           className="act"
           aria-label="down"
-          onClick={() => moveSelection(1)}
+          onClick={withRefocus(() => moveSelection(1))}
         >
           ↓
         </button>
@@ -201,7 +212,7 @@ export function Game({ course, onFinish, onAbort }: Props) {
           type="button"
           className="act primary"
           aria-label="accept"
-          onClick={() => accept()}
+          onClick={withRefocus(() => accept())}
         >
           ↹ Tab
         </button>
@@ -209,7 +220,7 @@ export function Game({ course, onFinish, onAbort }: Props) {
           type="button"
           className="act"
           aria-label="refresh"
-          onClick={() => refresh()}
+          onClick={withRefocus(() => refresh())}
         >
           ⇧↹
         </button>
@@ -217,7 +228,7 @@ export function Game({ course, onFinish, onAbort }: Props) {
           type="button"
           className="act"
           aria-label="backspace"
-          onClick={() => backspace()}
+          onClick={withRefocus(() => backspace())}
         >
           ⌫
         </button>
@@ -225,10 +236,7 @@ export function Game({ course, onFinish, onAbort }: Props) {
           type="button"
           className="act danger"
           aria-label="abort"
-          onClick={(e) => {
-            e.stopPropagation();
-            onAbort();
-          }}
+          onClick={() => onAbort()}
         >
           Esc
         </button>

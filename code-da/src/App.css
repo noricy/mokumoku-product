@@ -199,6 +199,7 @@
 
 /* --- input row (the buffer being typed) --- */
 .input-row {
+  position: relative;
   font-family: var(--mono);
   font-size: 22px;
   display: flex;
@@ -208,6 +209,41 @@
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 6px;
+  min-height: 44px;
+  cursor: text;
+}
+.input-row > .prompt-sigil,
+.input-row > .typed-buf,
+.input-row > .caret,
+.input-row > .literal-tag {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+/* Real input overlaid on the row — invisible content, fully tappable.
+   Tapping the row directly focuses this input and opens the soft keyboard
+   on iOS without needing a programmatic focus() call. */
+.real-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  border: none;
+  outline: none;
+  /* 16px minimum prevents iOS Safari from zooming on focus */
+  font-size: 16px;
+  font-family: var(--mono);
+  padding: 8px 14px;
+  cursor: text;
+  /* iOS-specific: ensure tappability */
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-user-select: text;
+  user-select: text;
 }
 .prompt-sigil {
   color: var(--green-dim);
@@ -225,24 +261,6 @@
   color: var(--red);
   letter-spacing: 0.05em;
   opacity: 0.85;
-}
-
-/* --- hidden input (drives soft keyboard on mobile) --- */
-.hidden-input {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  border: none;
-  outline: none;
-  padding: 0;
-  margin: 0;
-  background: transparent;
-  color: transparent;
-  caret-color: transparent;
-  /* must remain in layout to receive focus */
 }
 
 /* --- on-screen action buttons --- */
