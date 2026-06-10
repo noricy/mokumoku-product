@@ -47,7 +47,17 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment-retry.outputs.page_url || steps.deployment.outputs.page_url }}
     steps:
+      # actions/deploy-pages occasionally fails with HTTP 401 on first attempt
+      # (transient OIDC token race against the Pages API). One retry after a
+      # short wait has cleared every failure we've seen so far.
       - id: deployment
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - name: Wait before retry
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 15
+      - id: deployment-retry
+        if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@v4
